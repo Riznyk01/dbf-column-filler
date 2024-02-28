@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/tadvi/dbf"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,9 +11,27 @@ import (
 	"time"
 )
 
+const (
+	startMessage = "Hello. The program will change column values in either one file or in a group of files that you drop onto the execution file.\nDrop files onto the executable, enter the field name, and specify the new value.\nThe modified files will be saved in the 'changed' directory within the same folder where the original files are located.\n\n"
+	logFileName  = "error_log.txt"
+)
+
+var logger *log.Logger
+
+func init() {
+	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		fmt.Println("Failed to open log file:", err)
+		os.Exit(1)
+	}
+	logger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
+
 func main() {
 	var wg sync.WaitGroup
 	var columnValue, column string
+
+	fmt.Printf(startMessage)
 
 	checkForDroppedFiles(os.Args)
 	checkForOtherFormats(os.Args)
@@ -20,12 +39,12 @@ func main() {
 	fmt.Printf("please enter a column name to change:\n")
 	_, err := fmt.Scan(&column)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 	}
 	fmt.Printf("please enter a value and press enter:\n")
 	_, err = fmt.Scan(&columnValue)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 	}
 	fmt.Printf("you entered column:%s, value:%s\n", column, columnValue)
 
@@ -50,13 +69,13 @@ func processDBFFile(filePath string, col string, val string, wg *sync.WaitGroup)
 
 	t, err := dbf.LoadFile(filePath)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 	}
 
 	for i := 0; i < t.NumRecords(); i++ {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Println("panic occurred:", r)
+				logger.Println("panic occurred:", r)
 			}
 		}()
 		t.SetFieldValueByName(i, col, val)
@@ -66,15 +85,16 @@ func processDBFFile(filePath string, col string, val string, wg *sync.WaitGroup)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(changedFilesDir, os.ModePerm)
 		if err != nil {
-			fmt.Println("Error creating folders:", err)
+			logger.Println("error creating folders:", err)
 			return
 		}
 	}
 
 	err = t.SaveFile(pathForTheChangedFiles)
 	if err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 	}
+	fmt.Printf("file %s has been saved\n", pathForTheChangedFiles)
 }
 func checkForDroppedFiles(files []string) {
 	for len(files) < 2 {
