@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/tadvi/dbf"
+	"github.com/Riznyk01/dbf"
 	"log"
 	"os"
 	"path/filepath"
