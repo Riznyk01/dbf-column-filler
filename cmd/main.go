@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	startMessage = "Hello. The program will change column values in either one file or in a group of files that you drop onto the execution file.\nDrop files onto the executable, enter the field name, and specify the new value.\nThe modified files will be saved in the 'changed' directory within the same folder where the original files are located.\n\n"
+	startMessage = "Hello 👋 \nThis program is designed to modify column values in either a single file or a group of files that you drag and drop onto the executable file. \nSimply drag and drop the files onto the executable, enter the field name, and specify the new value. \nThe modified files will be saved in the 'changed' directory within the same folder where the original files are located.\n"
 	logFileName  = "error_log.txt"
 )
 
