@@ -48,6 +48,13 @@ func main() {
 		lang["StartMessageRow6"],
 		lang["StartMessageRow7"])
 
+	firstRun := alreadyRan()
+	if !firstRun {
+		<-time.After(2 * time.Second)
+	} else {
+		<-time.After(20 * time.Second)
+	}
+
 	checkForDroppedFiles(os.Args, lang)
 	checkForOtherFormats(os.Args, lang)
 
@@ -134,4 +141,17 @@ func checkForOtherFormats(files []string, lang models.Translations) {
 			os.Exit(0)
 		}
 	}
+}
+func alreadyRan() bool {
+	filename := "already_ran.txt"
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		file, err := os.Create(filename)
+		if err != nil {
+			println("Error creating file:", err)
+		}
+		defer file.Close()
+		return true
+	}
+	return false
 }
