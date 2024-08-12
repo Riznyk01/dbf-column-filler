@@ -143,7 +143,7 @@ func checkForOtherFormats(files []string, lang models.Translations) {
 	}
 }
 func alreadyRan() bool {
-	filename := "already_ran.txt"
+	filename := "already_ran"
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		file, err := os.Create(filename)
