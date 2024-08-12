@@ -2,7 +2,8 @@ package main
 
 import (
 	"bufio"
-	"dbf-column-filler/internal/text"
+	"dbf-column-filler/internal/models"
+	"dbf-column-filler/internal/translator"
 	"fmt"
 	"github.com/Riznyk01/dbf"
 	"log"
@@ -13,12 +14,17 @@ import (
 	"time"
 )
 
+const (
+	LogFileName  = "error_log.txt"
+	FailedToOpen = "Failed to open log file"
+)
+
 var logger *log.Logger
 
 func init() {
-	file, err := os.OpenFile(text.LogFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+	file, err := os.OpenFile(LogFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	if err != nil {
-		fmt.Printf("%s: %v", text.FailedToOpen, err)
+		fmt.Printf("%s: %v", FailedToOpen, err)
 		os.Exit(1)
 	}
 	logger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -28,10 +34,22 @@ func main() {
 	var wg sync.WaitGroup
 	var params []string
 
-	fmt.Printf(text.StartMessage)
+	lang, err := translator.LoadTranslations()
+	if err != nil {
+		logger.Println(err)
+	}
 
-	checkForDroppedFiles(os.Args)
-	checkForOtherFormats(os.Args)
+	fmt.Printf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n\n",
+		lang["StartMessageRow1"],
+		lang["StartMessageRow2"],
+		lang["StartMessageRow3"],
+		lang["StartMessageRow4"],
+		lang["StartMessageRow5"],
+		lang["StartMessageRow6"],
+		lang["StartMessageRow7"])
+
+	checkForDroppedFiles(os.Args, lang)
+	checkForOtherFormats(os.Args, lang)
 
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -42,9 +60,9 @@ func main() {
 
 		params = strings.Split(line, " ")
 		if len(params)%2 != 0 {
-			fmt.Printf(text.EnterEven)
+			fmt.Printf("%s\n", lang["EnterEven"])
 		} else if len(params) == 0 {
-			fmt.Printf(text.DidntEnter)
+			fmt.Printf("%s\n", lang["DidntEnter"])
 		} else {
 			break
 		}
@@ -53,22 +71,22 @@ func main() {
 	wg.Add(len(os.Args) - 1)
 	go func() {
 		for _, filePath := range os.Args[1:] {
-			go processDBFFile(filePath, params, &wg)
+			go processDBFFile(filePath, params, &wg, lang)
 		}
 	}()
 
 	wg.Wait()
-	fmt.Println(text.SuccessMessage)
+	fmt.Println(lang["SuccessMessage"])
 	<-time.After(15 * time.Second)
 }
 
-func processDBFFile(filePath string, par []string, wg *sync.WaitGroup) {
+func processDBFFile(filePath string, par []string, wg *sync.WaitGroup, lang models.Translations) {
 	defer wg.Done()
-	fmt.Printf("%s %s\n", text.Working, filePath)
+	fmt.Printf("%s %s\n", lang["text.Working"], filePath)
 	_, fileName := filepath.Split(filePath)
 	dirPath := filepath.Dir(filePath)
-	changedFilesDir := filepath.Join(dirPath, text.OutputFolder)
-	pathForTheChangedFiles := filepath.Join(dirPath, text.OutputFolder, fileName)
+	changedFilesDir := filepath.Join(dirPath, lang["OutputFolder"])
+	pathForTheChangedFiles := filepath.Join(dirPath, lang["OutputFolder"], fileName)
 
 	t, err := dbf.LoadFile(filePath)
 	if err != nil {
@@ -78,7 +96,7 @@ func processDBFFile(filePath string, par []string, wg *sync.WaitGroup) {
 	for i := 0; i < t.NumRecords(); i++ {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Printf(text.PanicMessage, r)
+				logger.Printf(lang["PanicMessage"], r)
 			}
 		}()
 		for j := 0; j < len(par); j += 2 {
@@ -90,7 +108,7 @@ func processDBFFile(filePath string, par []string, wg *sync.WaitGroup) {
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(changedFilesDir, os.ModePerm)
 		if err != nil {
-			logger.Println(text.CreatingFoldersError, err)
+			logger.Println(lang["CreatingFoldersError"], err)
 			return
 		}
 	}
@@ -99,19 +117,19 @@ func processDBFFile(filePath string, par []string, wg *sync.WaitGroup) {
 	if err != nil {
 		logger.Println(err)
 	}
-	fmt.Printf(text.FileSavedMessage, pathForTheChangedFiles)
+	fmt.Printf("%s\n%s", lang["FileSavedMessage"], pathForTheChangedFiles)
 }
-func checkForDroppedFiles(files []string) {
+func checkForDroppedFiles(files []string, lang models.Translations) {
 	for len(files) < 2 {
-		fmt.Printf("%s", text.DropTheFiles)
+		fmt.Printf("%s", lang["DropTheFiles"])
 		<-time.After(2 * time.Second)
 		os.Exit(0)
 	}
 }
-func checkForOtherFormats(files []string) {
+func checkForOtherFormats(files []string, lang models.Translations) {
 	for _, filePath := range files[1:] {
-		if !strings.HasSuffix(filePath, text.FileExt) {
-			fmt.Printf("%s", text.DropDBF)
+		if !strings.HasSuffix(filePath, lang["FileExt"]) {
+			fmt.Printf("%s", lang["DropDBF"])
 			<-time.After(2 * time.Second)
 			os.Exit(0)
 		}
