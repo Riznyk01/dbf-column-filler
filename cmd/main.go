@@ -124,7 +124,7 @@ func processDBFFile(filePath string, par []string, wg *sync.WaitGroup, lang mode
 	if err != nil {
 		logger.Println(err)
 	}
-	fmt.Printf("%s\n%s", lang["FileSavedMessage"], pathForTheChangedFiles)
+	fmt.Printf("%s\n%s\n", lang["FileSavedMessage"], pathForTheChangedFiles)
 }
 func checkForDroppedFiles(files []string, lang models.Translations) {
 	for len(files) < 2 {
